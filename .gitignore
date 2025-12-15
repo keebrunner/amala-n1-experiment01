@@ -1,0 +1,24 @@
+# --- 1. MAVEN (Build Artifacts) ---
+# Critical: exclude compiled classes and JAR files.
+# We maintain only the source code (src) in version control.
+target/
+*.log
+
+# --- 2. INTELLIJ IDEA (IDE Configuration) ---
+# Local environment settings should not be shared in the repo.
+.idea/
+*.iml
+*.iws
+out/
+
+# --- 3. OS (System Junk) ---
+.DS_Store
+Thumbs.db
+
+# --- 4. AMALA PROJECT (Generated Data) ---
+# The dataset is regenerated on every run; treated as a temporary artifact.
+amala_dataset.csv
+
+# NOTE:
+# We purposefully do NOT ignore 'index.md' and 'assets/'
+# to ensure the dashboard and progress chart are rendered on GitHub.
