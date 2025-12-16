@@ -15,10 +15,6 @@ out/
 .DS_Store
 Thumbs.db
 
-# --- 4. AMALA PROJECT (Generated Data) ---
-# The dataset is regenerated on every run; treated as a temporary artifact.
-amala_dataset.csv
-
 # NOTE:
 # We purposefully do NOT ignore 'index.md' and 'assets/'
 # to ensure the dashboard and progress chart are rendered on GitHub.

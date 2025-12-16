@@ -33,9 +33,9 @@ title: Project Amala (N-of-1)
 
 This project adheres to **Open Science** principles.
 
-*   [📥 Download Full Dataset (CSV)](amala_dataset.csv) — Raw, unaltered scientific data for future analysis.
+*   📥 Download Full Dataset (CSV) <https://github.com/keebrunner/amala-n1-experiment01/blob/main/amala_dataset.csv> — Raw, unaltered scientific data for future analysis.
 
-### Daily Logs
+### [Daily Logs](Logs/)
 {{LOG_LIST}}
 
 ---

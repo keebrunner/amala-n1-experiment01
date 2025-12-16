@@ -15,10 +15,10 @@ title: Project Amala (N-of-1)
 
 | Metric | Value |
 | :--- | :--- |
-| **Total Java Hours** | **0,0** / 1000 |
-| **Days Active** | 1 |
-| **Last Sync** | 2025-12-16 00:39 |
-| **System Version** | 0.01 (Genesis) |
+| **Total Java Hours** | **2,0** / 1000 |
+| **Days Active** | 2 |
+| **Last Sync** | 2025-12-16 22:33 |
+| **System Version** | 0.02 (LogPage) |
 
 ---
 
@@ -33,10 +33,11 @@ title: Project Amala (N-of-1)
 
 This project adheres to **Open Science** principles.
 
-*   [📥 Download Full Dataset (CSV)](amala_dataset.csv) — Raw, unaltered scientific data for future analysis.
+*   📥 Download Full Dataset (CSV) <https://github.com/keebrunner/amala-n1-experiment01/blob/main/amala_dataset.csv> — Raw, unaltered scientific data for future analysis.
 
-### Daily Logs
+### [Daily Logs](Logs/)
 - [**2025-12-15**](Logs/2025-12-15.md) — Java: `0.0h` | Mood: `7` | Diet: `7`
+- [**2025-12-15**](Logs/2025-12-16.md) — Java: `2.0h` | Mood: `7` | Diet: `5`
 
 ---
 

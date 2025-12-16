@@ -29,8 +29,7 @@ import java.util.stream.Stream;
 public class EtlProcessor {
 
     // --- CONFIGURATION ---
-    // ИЗМЕНЕНИЕ №2: Обновляем версию
-    private static final String VERSION = "0.01 (Genesis)";
+    private static final String VERSION = "0.02 (LogPage)"; // Обновил версию для наглядности
     private static final String LOGS_DIR = "Logs";
     private static final String ASSETS_DIR = "assets";
     private static final String DATASET_FILE = "amala_dataset.csv";
@@ -59,6 +58,7 @@ public class EtlProcessor {
         @JsonProperty("forest_minutes")
         public int forestMinutes;
         public String link;
+        public String content; // <-- ИЗМЕНЕНИЕ 1.1: Добавлено поле для контента
 
         // Шкалированные значения
         public double scaleJava;
@@ -80,9 +80,11 @@ public class EtlProcessor {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.registerModule(new JavaTimeModule());
 
+        // Исключаем index.md из списка логов для парсинга
         try (Stream<Path> paths = Files.walk(Paths.get(LOGS_DIR))) {
             List<File> files = paths.filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(".md"))
+                    .filter(path -> !path.getFileName().toString().equals("index.md")) // Исключаем index.md
                     .map(Path::toFile)
                     .toList();
 
@@ -90,15 +92,19 @@ public class EtlProcessor {
 
             for (File file : files) {
                 try {
-                    String content = Files.readString(file.toPath());
-                    String[] parts = content.split("---", 3);
+                    // --- ИЗМЕНЕНИЕ 1.2: Обновлена логика для сохранения контента ---
+                    String fileContent = Files.readString(file.toPath());
+                    String[] parts = fileContent.split("---", 3);
                     if (parts.length < 3) {
                         System.out.println("⚠️ Некорректный формат в " + file.getName());
                         continue;
                     }
                     String yamlPart = parts[1];
+                    String markdownContent = parts[2]; // Сохраняем текст лога
+
                     DailyLog log = mapper.readValue(yamlPart, DailyLog.class);
                     log.link = LOGS_DIR + "/" + file.getName();
+                    log.content = markdownContent.strip(); // Присваиваем его объекту
                     data.add(log);
                     System.out.println("✅ Спарсено из " + file.getName());
                 } catch (Exception e) {
@@ -194,7 +200,7 @@ public class EtlProcessor {
                     List.of(dates.get(0), dates.get(dates.size() - 1)),
                     List.of(JAVA_PLAN_POINTS, JAVA_PLAN_POINTS));
             planSeries.setLineColor(Color.decode("#f1c40f"));
-            planSeries.setLineStyle(SeriesLines.DASH_DASH); // <--- ПРОБЛЕМА ЗДЕСЬ
+            planSeries.setLineStyle(SeriesLines.DASH_DASH);
             planSeries.setMarker(SeriesMarkers.NONE);
             planSeries.setLineWidth(4);
         }
@@ -204,7 +210,7 @@ public class EtlProcessor {
         System.out.println("🎨 График сохранён: " + chartPath);
     }
 
-    // --- 4. PUBLISH ---
+    // --- 4. PUBLISH (MAIN DASHBOARD) ---
     private static void updateDashboard(List<DailyLog> data) throws IOException {
         if (data.isEmpty()) return;
 
@@ -213,8 +219,11 @@ public class EtlProcessor {
         String lastUpdate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 
         StringBuilder logListMd = new StringBuilder();
-        for (int i = data.size() - 1; i >= 0; i--) {
-            DailyLog row = data.get(i);
+        // Сортируем для отображения в dashboard, не меняя основной список
+        List<DailyLog> sortedForDashboard = new ArrayList<>(data);
+        sortedForDashboard.sort(Comparator.comparing(log -> log.date, Comparator.reverseOrder()));
+
+        for (DailyLog row : sortedForDashboard) {
             String dateStr = row.date.format(DateTimeFormatter.ISO_LOCAL_DATE);
             String link = String.format("- [**%s**](%s) — Java: `%sh` | Mood: `%d` | Diet: `%d`\n",
                     dateStr, row.link, row.javaHours, row.mood, row.diet);
@@ -233,6 +242,42 @@ public class EtlProcessor {
         System.out.println("🚀 Дашборд обновлён: " + OUTPUT_FILE);
     }
 
+    // --- ИЗМЕНЕНИЕ 1.3: Новый метод для создания страницы со всеми логами ---
+    private static void generateLogsPage(List<DailyLog> data) throws IOException {
+        if (data.isEmpty()) return;
+
+        // Сортируем в обратном порядке, чтобы новые были сверху
+        List<DailyLog> sortedData = new ArrayList<>(data);
+        sortedData.sort(Comparator.comparing(log -> log.date, Comparator.reverseOrder()));
+
+        StringBuilder logsPageContent = new StringBuilder();
+        logsPageContent.append("---\n");
+        logsPageContent.append("layout: default\n");
+        logsPageContent.append("title: Daily Logs Archive\n");
+        logsPageContent.append("---\n\n");
+        logsPageContent.append("# Архив Ежедневных Логов\n\n");
+        logsPageContent.append("Здесь собраны все записи в хронологическом порядке, от последней к первой.\n\n");
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        for (DailyLog log : sortedData) {
+            logsPageContent.append("---\n\n"); // Горизонтальная линия для разделения
+            logsPageContent.append("## ").append(log.date.format(formatter)).append("\n\n");
+            logsPageContent.append(log.content).append("\n\n");
+        }
+
+        // Убедимся, что папка Logs существует
+        Path logsDirPath = Paths.get(LOGS_DIR);
+        if (!Files.exists(logsDirPath)) {
+            Files.createDirectories(logsDirPath);
+        }
+
+        Path outputPath = Paths.get(LOGS_DIR, "index.md");
+        Files.writeString(outputPath, logsPageContent.toString());
+        System.out.println("📖 Страница всех логов сгенерирована: " + outputPath);
+    }
+
+
     // --- MAIN ---
     public static void main(String[] args) {
         System.out.println("--- AMALA ETL PROCESSOR (JAVA VERSION) v" + VERSION + " START ---");
@@ -245,6 +290,7 @@ public class EtlProcessor {
             List<DailyLog> cleanData = processData(rawData);
             generateCharts(cleanData);
             updateDashboard(cleanData);
+            generateLogsPage(cleanData); // <-- ИЗМЕНЕНИЕ 1.4: Вызов нового метода
             System.out.println("--- SUCCESS ---");
         } catch (IOException e) {
             System.err.println("Произошла критическая ошибка: " + e.getMessage());
