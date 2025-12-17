@@ -208,7 +208,7 @@ public class EtlProcessor {
         System.out.println("🎨 График сохранён: " + chartPath);
     }
 
-    // --- 4. PUBLISH (MAIN DASHBOARD) ---
+    // --- 4. PUBLISH (MAIN DASHBOARD) — УЛУЧШЕННАЯ ВЕРСИЯ С ИНСАЙТАМИ ---
     private static void updateDashboard(List<DailyLog> data) throws IOException {
         if (data.isEmpty()) return;
 
@@ -217,24 +217,45 @@ public class EtlProcessor {
         String lastUpdate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 
         StringBuilder logListMd = new StringBuilder();
-        List<DailyLog> sortedForDashboard = new ArrayList<>(data);
-        sortedForDashboard.sort(Comparator.comparing(log -> log.date, Comparator.reverseOrder()));
 
-        // --- ИЗМЕНЕНИЕ 2: Берем только последние 5 записей ---
+        // Сортируем по дате DESC — самые новые сверху
+        List<DailyLog> sortedForDashboard = new ArrayList<>(data);
+        sortedForDashboard.sort(Comparator.comparing((DailyLog log) -> log.date).reversed());
+
+        // Берём только последние 5
         List<DailyLog> recentLogs = sortedForDashboard.stream().limit(5).toList();
 
-        for (DailyLog row : recentLogs) {
-            String dateStr = row.date.format(DateTimeFormatter.ISO_LOCAL_DATE);
-            String link = String.format("- [**%s**](%s) — Java: `%sh` | Mood: `%d` | Diet: `%d`\n",
-                    dateStr, row.link, row.javaHours, row.mood, row.diet);
-            logListMd.append(link);
+        for (DailyLog log : recentLogs) {
+            String dateStr = log.date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+            // Заголовок с краткой статистикой и ссылкой
+            logListMd.append(String.format("- [**%s**](%s) — Java: `%.1fh` | Mood: `%d` | Diet: `%d`\n",
+                    dateStr, log.link, log.javaHours, log.mood, log.diet));
+
+            // Полная строка телеметрии (как в архиве)
+            String statsLine = String.format(
+                    "**Type:** `%s` | **Java:** `%.1fh` | **Mood:** `%d` | **Diet:** `%d` | **Sleep:** `%.1fh` (%d%%) | **Forest:** `%dm`\n\n",
+                    log.type != null ? log.type : "—",
+                    log.javaHours, log.mood, log.diet,
+                    log.sleepHours, log.sleepQuality, log.forestMinutes
+            );
+            logListMd.append(statsLine);
+
+            // Сам текст инсайтов
+            String content = log.content != null ? log.content.trim() : "_Нет заметок за этот день._";
+            if (!content.isEmpty()) {
+                logListMd.append(content).append("\n\n");
+            }
+
+            // Разделитель между днями для читаемости
+            logListMd.append("---\n\n");
         }
 
-        // Добавляем ссылку на архив, если записей больше 5
+        // Ссылка на полный архив
         if (data.size() > 5) {
-            logListMd.append("\n[→ **View Full Archive**](Logs/index.md)\n");
+            logListMd.append("[→ **View Full Archive**](Logs/index.md)\n");
         } else {
-            logListMd.append("\n[→ **View Archive**](Logs/index.md)\n");
+            logListMd.append("[→ **View Archive**](Logs/index.md)\n");
         }
 
         String template = Files.readString(Paths.get(TEMPLATE_FILE));
@@ -243,7 +264,7 @@ public class EtlProcessor {
                 .replace("{{DAYS_IN}}", String.valueOf(daysCount))
                 .replace("{{LAST_UPDATE}}", lastUpdate)
                 .replace("{{VERSION}}", VERSION)
-                .replace("{{LOG_LIST}}", logListMd.toString().strip());
+                .replace("{{LOG_LIST}}", logListMd.toString().trim());
 
         Files.writeString(Paths.get(OUTPUT_FILE), content);
         System.out.println("🚀 Дашборд обновлён: " + OUTPUT_FILE);
