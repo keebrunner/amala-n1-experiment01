@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 public class EtlProcessor {
 
     // --- CONFIGURATION ---
-    private static final String VERSION = "0.03 (StatsLimit)";
+    private static final String VERSION = "0.01 (Genesis)";
     private static final String LOGS_DIR = "Logs";
     private static final String ASSETS_DIR = "assets";
     private static final String DATASET_FILE = "amala_dataset.csv";
